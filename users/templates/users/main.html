@@ -1,0 +1,31 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="position-absolute top-50 start-50 translate-middle">
+
+    <div class="card text-center" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Welcome to Helios! </p>
+        </div>
+
+        <div class="card-body">
+            <div class="p-1">
+                <a class="btn btn-outline-primary my-2 my-sm-0 btn-block col-12" href="/voter/">Vote</a>
+            </div>
+            <div class="p-1">
+                <a class="btn btn-outline-primary my-2 my-sm-0 btn-block col-12" href="/room/">Manage Voting Event</a>
+            </div>
+            <div class="p-1">
+                <a class="btn btn-outline-primary my-2 my-sm-0 btn-block col-12" href="/authority/">Verify Voting Event</a>
+            </div>
+
+
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+</div>
+{% endblock %}

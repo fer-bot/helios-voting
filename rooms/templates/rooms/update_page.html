@@ -1,0 +1,91 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="container-fluid">
+    <div class="row justify-content-center g-0">
+
+    <div class="card text-center my-5 mx-3 " style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Room Details </p>
+        </div>
+
+        <div class="card-body">
+            <form>
+                {% csrf_token %}
+                <div class="mx-5 row mb-3 justify-content-between">
+                    <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Room ID</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Check ID</button> -->
+                    <input type="text" class="form-control" id="room_id" name="room_id" value={{room_id}} readonly>
+                </div>
+
+                <div class="mx-5 row mb-3 justify-content-between">
+                    <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Prime Number</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Regenerate</button> -->
+                    <textarea class="form-control" id="room_id" name="room_id" rows="1" readonly>{{prime}}</textarea>
+                </div>
+
+                <div class="mx-5 row justify-content-between">
+                    <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Generator Number</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Regenerate</button> -->
+                    <textarea class="form-control" id="room_id" name="room_id" rows="1" readonly>{{generator}}</textarea>
+                </div>
+
+                <a type="submit" class="btn btn-primary mt-3 mb-0" href="{% url 'room_update_voter' room_id=room_id %}">Manage Voters</a>
+                <a type="submit" class="btn btn-primary mt-3 mb-0" href="{% url 'room_update_authority' room_id=room_id%}">Manage Authority</a>
+                {% if is_locked and not is_open %}
+                    <a type="submit" class="btn btn-danger mt-3 mb-0" href="{% url 'room_open'  room_id=room_id%}">Open Voting Event</a>
+                {% elif is_open and not is_close %}
+                    <a type="submit" class="btn btn-danger mt-3 mb-0" href="{% url 'room_close'  room_id=room_id%}">Close Voting Event</a>
+                {% elif is_close and not is_released %}
+                    <a type="submit" class="btn btn-danger mt-3 mb-0" href="{% url 'room_release'  room_id=room_id%}">Release Voting Result</a>
+                {% endif %}
+
+
+                <br/>
+            </form>
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+    <div class="card text-center my-5 mx-3" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Update Room </p>
+        </div>
+
+        <div class="card-body">
+            <form action="{% url 'room_update_details' room_id=room_id %}" method="post">
+                {% csrf_token %}
+                <div class="mx-5 row mb-3 justify-content-between">
+                    <label for="room_qn" class="col-sm-6 col-form-label" style="text-align:left;">Question</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Check ID</button> -->
+                    <input type="text" class="form-control" id="room_qn" name="room_qn" value="{{ question }}">
+                </div>
+
+                <div class="mx-5 row mb-3 justify-content-between">
+                    <label for="room_ans1" class="col-sm-6 col-form-label" style="text-align:left;">Choice 1</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Regenerate</button> -->
+                    <input type="text" class="form-control" id="room_ans1" name="room_ans1" value="{{ answer.0 }}">
+                </div>
+
+                <div class="mx-5 row justify-content-between">
+                    <label for="room_ans2" class="col-sm-6 col-form-label" style="text-align:left;">Choice 2</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Regenerate</button> -->
+                    <input type="text" class="form-control" id="room_ans2" name="room_ans2" value="{{ answer.1 }}">
+                </div>
+                {% if not is_open %}
+                    <button type="submit" class="btn btn-primary mb-0 mt-3">Update</button>
+                {% endif %}
+                <br/>
+            </form>
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+    </div>
+    <div class="row" style="height: 30px;"></div>
+</div>
+{% endblock %}

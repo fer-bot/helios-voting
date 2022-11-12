@@ -1,0 +1,47 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="container-fluid">
+    <div class="row justify-content-center g-0">
+    <div class="card text-center my-5 " style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Room Created!</p>
+        </div>
+
+        <div class="card-body">
+            <form>
+                {% csrf_token %}
+                <div class="mx-5 row mb-3 justify-content-between">
+                    <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Room ID</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Check ID</button> -->
+                    <input type="text" class="form-control" id="room_id" name="room_id" value={{room_id}} readonly>
+                </div>
+
+                <div class="mx-5 row mb-3 justify-content-between">
+                    <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Prime Number</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Regenerate</button> -->
+                    <textarea class="form-control" id="room_id" name="room_id" rows="4" readonly>{{prime}}</textarea>
+                </div>
+
+                <div class="mx-5 row justify-content-between">
+                    <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Generator Number</label>
+                    <!-- <button type="submit" class="btn btn-outline-success col-sm-3 btn-sm m-1">Regenerate</button> -->
+                    <textarea class="form-control" id="room_id" name="room_id" rows="4" readonly>{{generator}}</textarea>
+                </div>
+
+                <p class="mt-3 mb-1" style="color: red; font-size:15px;">Note: Make sure you save your Room ID!</p>
+
+                <a type="submit" class="btn btn-primary mb-0" href="{% url 'room_update_details' room_id=room_id%}">Go to room!</a>
+                <br/>
+            </form>
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+    
+    </div>
+    <div class="row" style="height: 30px;"></div>
+</div>
+{% endblock %}

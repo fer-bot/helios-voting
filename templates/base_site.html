@@ -1,0 +1,55 @@
+{% load static %}
+<!doctype html>
+<html lang="en" class="h-100">
+  <head>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="icon" href="https://upload.wikimedia.org/wikipedia/commons/thumb/4/49/Sun_with_rays_%28fixed_width%29.svg/1200px-Sun_with_rays_%28fixed_width%29.svg.png">
+    <link rel="stylesheet" href="{% static 'bootstrap/css/bootstrap.min.css' %}">
+
+    <title>Helios</title>
+  </head>
+  <body class="bg-light">
+    <div class="bg-white  g-0" style="min-height: 100vh;">
+
+      {% if messages %}
+        <div class="modal fade" id="modal" tabindex="-1" aria-labelledby="exampleModalLabel" aria-hidden="false">
+          <div class="modal-dialog">
+            <div class="modal-content">
+              <div class="modal-body">
+                {% for message in messages %}
+                  <p>{{ message }}</p>
+                {% endfor %}
+              </div>
+              <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Close</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      {% endif %}
+      
+      {% block content %}
+      {% endblock %}
+      <!-- Content -->
+
+    </div>
+
+    <!-- jQuery first, then Popper.js + Bootstrap JS -->
+    <script src="{% static 'bootstrap/js/bootstrap.bundle.min.js' %}"></script>
+
+    {% block script %}
+    {% endblock %}
+
+    <!-- JS for modal -->
+    <script>
+      if (document.getElementById('modal') !== null){
+        var myModal = new bootstrap.Modal(document.getElementById('modal'), {})
+        myModal.toggle()
+      }
+    </script>
+  </body>
+</html>

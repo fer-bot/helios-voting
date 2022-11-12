@@ -1,0 +1,17 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="position-absolute top-50 start-50 translate-middle">
+
+    <div class="card text-center" style="width: 500px;">
+        <div class="card-body">
+            <h1 class="display-4">{{message}}</h1>
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+</div>
+{% endblock %}

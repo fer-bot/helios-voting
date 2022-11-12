@@ -1,0 +1,40 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+<div class="position-absolute top-50 start-50 translate-middle">
+
+    <div class="card text-center" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> HELIOS </p>
+        </div>
+
+        <div class="card-body">
+        <h5 class="card-title pb-3">Login</h5>
+
+        <form action="{% url 'user_login' %}?next={{next}}" method="post">
+            {% csrf_token %}
+            <div class="mb-3 row">
+                <label for="username" class="col-sm-3 col-form-label">Username</label>
+                <div class="col-sm-9">
+                <input type="text" class="form-control" id="username" name="username" required>
+                </div>
+            </div>
+            <div class="mb-3 row">
+                <label for="inputPassword" class="col-sm-3 col-form-label">Password</label>
+                <div class="col-sm-9">
+                <input type="password" class="form-control" id="password" name="password" required>
+                </div>
+            </div>
+            <button type="submit" class="btn btn-primary my-3 mb-0">Login</button>
+            <br/>
+            <a class="p-0 m-0" href="/user/signup">Sign up now!</a>
+        </form>
+
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+</div>
+{% endblock %}

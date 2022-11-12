@@ -1,0 +1,127 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="row justify-content-center g-0 pt-5">
+    <div class="px-3 pb-5">
+        <h1 class="display-5">Room Constants</h1>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th scope="col">Generator</th>
+                <th scope="col">Prime</th>
+                <th scope="col">Public Key</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ room.generator}}</textarea></td>
+                <td><textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ room.prime}}</textarea></td>
+                <td><textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ room.public_key}}</textarea></td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+
+    <div style="overflow-x: auto;" class="px-3">
+
+    <h1 class="display-5">Voters</h1>
+
+    <table class="table table-bordered " style="width: 200%;">
+        <thead>
+          <tr>
+            <th scope="col">Username</th>
+            <th scope="col">Encrypted a</th>
+            <th scope="col">Encrypted b</th>
+            <th scope="col">Proof a0</th>
+            <th scope="col">Proof a1</th>
+            <th scope="col">Proof b0</th>
+            <th scope="col">Proof b1</th>
+            <th scope="col">Proof c0</th>
+            <th scope="col">Proof c1</th>
+            <th scope="col">Proof r0</th>
+            <th scope="col">Proof r1</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for voter in voters %}
+            <tr>
+                <th scope="row">{{ voter.user_id }}</th>
+                <td>
+                    {% if voter.voting_a %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.voting_a }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.voting_b %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.voting_b }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.proof_a0 %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.proof_a0 }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.proof_a1 %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.proof_a1 }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.proof_b0 %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.proof_b0 }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.proof_b1 %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.proof_b0 }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.proof_c0 %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.proof_c0 }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.proof_c1 %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.proof_c1 }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.proof_r0 %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.proof_r0 }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if voter.proof_r1 %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ voter.proof_r1 }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+</div>
+{% endblock %}

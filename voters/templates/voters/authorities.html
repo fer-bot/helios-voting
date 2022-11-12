@@ -1,0 +1,94 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="row justify-content-center g-0 pt-5">
+    <div class="px-3 pb-5">
+        <h1 class="display-5">Room Constants</h1>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th scope="col">Generator</th>
+                <th scope="col">Prime</th>
+                <th scope="col">Public Key</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ room.generator}}</textarea></td>
+                <td><textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ room.prime}}</textarea></td>
+                <td><textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ room.public_key}}</textarea></td>
+            </tr>
+        </tbody>
+    </table>
+    </div>
+
+    <div style="overflow-x: auto;" class="px-3">
+
+    <h1 class="display-5">Voters</h1>
+
+    <table class="table table-bordered " style="width: 150%;">
+        <thead>
+          <tr>
+            <th scope="col">Username</th>
+            <th scope="col">Public Key</th>
+            <th scope="col">Decrypted a</th>
+            <th scope="col">Proof u</th>
+            <th scope="col">Proof v</th>
+            <th scope="col">Proof s</th>
+            <th scope="col">Proof d</th>
+          </tr>
+        </thead>
+        <tbody>
+            {% for auth in auths %}
+            <tr>
+                <th scope="row">{{ auth.user_id }}</th>
+                <td>
+                    {% if auth.public_key %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ auth.public_key }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if  auth.decrypt_a %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ auth.decrypt_a }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if auth.proof_u %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ auth.proof_u }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if auth.proof_v %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ auth.proof_v }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if auth.proof_s %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ auth.proof_s }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+                <td>
+                    {% if auth.proof_d %}
+                    <textarea type="text" class="form-control" rows="1" cols="3" readonly>{{ auth.proof_d }}</textarea>
+                    {% else %}
+                    -
+                    {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+        </tbody>
+      </table>
+    </div>
+</div>
+{% endblock %}

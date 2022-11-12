@@ -1,0 +1,29 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="position-absolute top-50 start-50 translate-middle">
+
+    <div class="card text-center" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Enter Room ID! </p>
+        </div>
+
+        <div class="card-body">
+            <form action="{% url 'room_main' %}" method="post">
+                {% csrf_token %}
+                <div class="mx-5 row">
+                    <input type="text" class="form-control" id="room_id" name="room_id" required>
+                </div>
+                <button type="submit" class="btn btn-primary my-3 mb-0">Go</button>
+                <br/>
+                <a class="p-0 m-0" href="/room/create/">or create new event!</a>
+            </form>
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+</div>
+{% endblock %}

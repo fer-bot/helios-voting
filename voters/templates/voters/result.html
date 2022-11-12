@@ -1,0 +1,56 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="row justify-content-center g-0 pt-5">
+
+    <div class="card text-center mb-5" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Voting Result </p>
+        </div>
+
+        <div class="card-body">
+            <div class="p-3 pb-5 border rounded">
+
+                <h4 class="py-3">{{ question }}</h4>
+
+                <table class="table table-bordered">
+                    <thead>
+                      <tr>
+                        <th scope="col">{{ answer.0 }}</th>
+                        <th scope="col">{{ answer.1 }}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr>
+                        <td>{{ choose_0 }}</td>
+                        <td>{{ choose_1 }}</td>
+                      </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <p class="py-3">Thank you for using Helios!</p>
+
+            <p class="pt-3 display-6">Details:</p>
+
+            <div class="mx-5 row justify-content-between">
+                <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Encrypted g</label>
+                <textarea class="form-control" id="total_g" name="room_id" rows="1" readonly>{{ total_g }}</textarea>
+            </div>
+            <div class="mx-5 row justify-content-between">
+                <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Total Encrypted a</label>
+                <textarea class="form-control" id="total_g" name="room_id" rows="1" readonly>{{ total_a }}</textarea>
+            </div>
+            <div class="mx-5 row justify-content-between pb-3">
+                <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Total Encrypted b</label>
+                <textarea class="form-control" id="total_g" name="room_id" rows="1" readonly>{{ total_b }}</textarea>
+            </div>
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+</div>
+
+{% endblock %}

@@ -1,0 +1,348 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+<nav class="navbar navbar-dark bg-dark ">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">☼ Helios</a>
+        <a class="btn btn-outline-success my-2 my-sm-0" href="/user/">Get started</a>
+    </div>
+</nav>
+
+<div class="container-fluid p-5">
+
+
+    <h1 id="-helios-">☼ HELIOS ☼</h1>
+    <hr>
+    <h2 id="what-is-helios">What is Helios</h2>
+    <p>Helios is an online cryptographic mini-voting (yes/no voting) platform. This is a variant of Helios Voting Scheme referencing from <a href="https://eprint.iacr.org/2016/765.pdf">Cryptographic Voting – A Gentle Introduction</a>.</p>
+    <p>A voting event will have 3 types of user:</p>
+    <ul>
+    <li>(one) voting event creator</li>
+    <li>(one or more) authority(s)</li>
+    <li>(one or more) voter(s)</li>
+    </ul>
+    <p>The voting event creator is not crucial for determining the result of our voting. He/she will only be useful for managing the event details, eligible voters and trusted authorities, and opening/closing the event.</p>
+    <p>The authority(s) is the important key for a safe and secure voting event. Here, more than one authority is required to prevent malicious act. With more than one authority, we can be sure this voting is safe if at least one of the authorities is honest.</p>
+    <p>Our goal is trying to recreate offline voting system where:</p>
+    <ol>
+    <li>There will be a public lists of voters and authorities.</li>
+    <li>Each voter can vote yes/no during the given period of time.</li>
+    <li>Everyone can see who have voted but only the voter him/her self know his/her choice.</li>
+    <li>After the voting ends, all authority will use the key to open the voting box which can only be opened if all the keys are present.</li>
+    <li>The voter can make sure his vote is calculated for the end result and the end result is not rigged.</li>
+    </ol>
+    <p>Let&#39;s see how we could do this using cryptography!</p>
+    <h2 id="technical-details">Technical Details</h2>
+    <p>To achieve our goal for an anonymous voting, we are using <code>Exponential ElGamal</code> encryption scheme and two zero-knowledge protocol: <code>Chaum-Pedersen</code> and <code>DCP (Disjunctive Chaum-Pedersen)</code>.</p>
+    <p>We will also have a public bulletin board that can be seen by everyone (voters and authority).</p>
+    <h3 id="voting-event-creation-phase">Voting Event Creation Phase</h3>
+    <p>As we are using ElGamal for our encryption scheme, we will need a large prime number <code>p</code> and its primitive root (generator) <code>g</code>. Both <code>p</code> and <code>g</code> will be public constant and be shown at the buletin board. For this system, we will have <code>p</code> with length of 1024-bit.</p>
+    <p>It takes a lot of time to produce 1024-bit prime number and its primitive root. Hence, we are using a pre-generated random safe prime <code>p</code>. <code>p</code> is a safe prime if <code>p = 2q + 1</code> and <code>q</code> is also a prime. This prime is used such that generation of <code>g</code> is much faster. Using the lagrange theorem, we would just need to check if <code>g^2 != 1</code> and <code>g^q != 1</code></p>
+    <p>The code used to generate such primes and the generator in Python:</p>
+    <pre><code class="lang-python">
+    <span class="hljs-keyword">from</span> Crypto.Util <span class="hljs-keyword">import</span> number
+    
+    <span class="hljs-comment"># For generating safe prime p</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">generate_large_prime</span><span class="hljs-params">()</span>:</span>
+        n_length = <span class="hljs-number">1024</span>
+        p = number.getPrime(n_length)
+        <span class="hljs-keyword">while</span> <span class="hljs-keyword">not</span> number.isPrime((p<span class="hljs-number">-1</span>)//<span class="hljs-number">2</span>):
+            p = number.getPrime(n_length)
+        <span class="hljs-keyword">return</span> p
+    
+    <span class="hljs-comment"># For generating generator g</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">find_primitive_root</span><span class="hljs-params">(p)</span>:</span>
+        f2 = (p<span class="hljs-number">-1</span>)//<span class="hljs-number">2</span>
+        <span class="hljs-keyword">while</span> <span class="hljs-keyword">True</span>:
+            g = random.randint(<span class="hljs-number">3</span>, p<span class="hljs-number">-1</span>)
+            <span class="hljs-keyword">if</span> <span class="hljs-keyword">not</span> pow(g, <span class="hljs-number">2</span>, p) == <span class="hljs-number">1</span> <span class="hljs-keyword">and</span> <span class="hljs-keyword">not</span> pow(g, f2, p) == <span class="hljs-number">1</span>:
+                <span class="hljs-keyword">return</span> g
+    </code></pre>
+    <h3 id="authority-setup-phase">Authority Setup Phase</h3>
+    <p>During this phase, we will get the consolidated public key <code>pk</code> for the ElGamal encryption. As we have multiple authorities, we will define the secret key (<code>sk</code>) and public key (<code>pk</code>) as:</p>
+    <pre><code>
+    sk = sk_1 + sk_2 + ... + sk_n
+    pk = g^(sk) mod p
+       =<span class="ruby"> g^(sk_1 + sk_2 + ... + sk_n) mod p
+    </span>   =<span class="ruby"> (g^sk_1 * g^sk_2 * ... * g^sk_n) mod p
+    </span>   =<span class="ruby"> pk_1 * pk_2 * ... * pk_n mod p</span>
+    </code></pre><p>where <code>sk_i</code> and <code>pk_i</code> is the secret key and public key of n-th authority. For this, each authority must then create their random <code>sk_i</code>, store it somewhere safe, generate <code>pk_i = g^sk_i mod p</code>, and send only the <code>pk_i</code> to this voting system and will be posted to the bulletin board.</p>
+    <p>After receiving all the authorities&#39; public key, we then generate the final public key and post it to the buletin board.</p>
+    <p>To help authorities in generating their public key and secret key while making sure it does not leak to the server, we give this function in JavaScript as their secret key should never reach the our voting system:</p>
+    <pre><code class="lang-javascript">
+    <span class="hljs-built_in">var</span> bits = <span class="hljs-number">1024</span>;
+    
+    // For generating <span class="hljs-built_in">new</span> SK. Do take note this <span class="hljs-built_in">is</span> <span class="hljs-keyword">not</span> the best practice to generate a <span class="hljs-built_in">random</span> number. We will need to improve this <span class="hljs-built_in">part</span>.
+    function getRandom() {
+      <span class="hljs-built_in">var</span> result = <span class="hljs-string">""</span>;
+      <span class="hljs-keyword">for</span> (<span class="hljs-built_in">var</span> i = <span class="hljs-number">0</span>; i &lt; <span class="hljs-number">80</span>; i++) {
+        result += String(Math.<span class="hljs-built_in">floor</span>(Math.<span class="hljs-built_in">random</span>() * <span class="hljs-number">10000</span>));
+      }
+      <span class="hljs-built_in">return</span> result;
+    }
+    
+    // For generating <span class="hljs-built_in">new</span> PK
+    function powMod(g, sk, <span class="hljs-built_in">modulus</span>) {
+      g = BigInt(g);
+      sk = BigInt(sk);
+      <span class="hljs-built_in">modulus</span> = BigInt(<span class="hljs-built_in">modulus</span>);
+    
+      <span class="hljs-keyword">if</span> (<span class="hljs-built_in">modulus</span> === BigInt(<span class="hljs-number">1</span>)) <span class="hljs-built_in">return</span> <span class="hljs-number">0</span>;
+    
+      <span class="hljs-built_in">var</span> result = BigInt(<span class="hljs-number">1</span>);
+      g = g <span class="hljs-symbol">%</span> <span class="hljs-built_in">modulus</span>;
+      <span class="hljs-keyword">while</span> (sk &gt; <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">if</span> (sk <span class="hljs-symbol">%</span> BigInt(<span class="hljs-number">2</span>) === BigInt(<span class="hljs-number">1</span>))
+          //<span class="hljs-built_in">odd</span> number
+          result = (result * g) <span class="hljs-symbol">%</span> <span class="hljs-built_in">modulus</span>;
+        sk = sk / BigInt(<span class="hljs-number">2</span>); //<span class="hljs-built_in">divide</span> by <span class="hljs-number">2</span>
+        g = (g * g) <span class="hljs-symbol">%</span> <span class="hljs-built_in">modulus</span>;
+      }
+      <span class="hljs-built_in">return</span> result;
+    }
+    </code></pre>
+    <p>The code to generate the final public key <code>pk</code> in Python:</p>
+    <pre><code class="lang-python"><span class="hljs-function">
+    <span class="hljs-keyword">def</span> <span class="hljs-title">get_room_pk</span><span class="hljs-params">(authority_pks, p)</span></span>:
+        pk = <span class="hljs-number">1</span>
+    
+        <span class="hljs-keyword">for</span> authority_pk <span class="hljs-keyword">in</span> <span class="hljs-symbol">authority_pks:</span>
+            pk = (pk * authority_pk) % p
+    
+        <span class="hljs-keyword">return</span> pk
+    </code></pre>
+    <h3 id="voting-phase">Voting Phase</h3>
+    <p>During the voting period, each user will use exponential ElGamal to encrypt their voting result as exponential ElGamal is great for tallying up the votes. Each user will pick a random number <code>r_i</code> and generate ciphertext <code>(a_i, b_i)</code> with <code>a_i = g^r_i mod p</code> and <code>b_i = g^m * pk^r_i mod p</code> where <code>m = 0</code> for yes and <code>m = 1</code> for no.</p>
+    <p>We also need a way to verify that a voter does not send any invalid vote (for example, <code>b_i = g^100 * pk^r_i mod p</code>) that could give him an unfair advantage. Here is where we use DCP (Disjunctive Chaum-Pedersen&#39;s) zero-knowledge proof protocol. DCP requires the voter to generate proofs that his/her vote is valid without giving any information of whether they choose yes or no.</p>
+    <p>As a result, each voter will send ciphertext that would later be posted on the bulletin board:</p>
+    <pre><code>(a_i, <span class="hljs-keyword">b_i, </span>a0_i, a1_i, <span class="hljs-keyword">b0_i, </span><span class="hljs-keyword">b1_i, </span>c0_i, c1_i, r0_i, r1_i)
+    </code></pre><p>As we don&#39;t want to leak the random number <code>r_i</code> to the server, to help voters generate the ciphertexts, we give this functions in JavaScript:</p>
+    <pre><code class="lang-javascript">
+    // Like pow <span class="hljs-meta">function</span> in Python
+    <span class="hljs-symbol">function</span> powMod(a, <span class="hljs-keyword">b, </span>modulus) {
+      a = <span class="hljs-keyword">BigInt(a);
+    </span>  <span class="hljs-keyword">b </span>= <span class="hljs-keyword">BigInt(b);
+    </span>  modulus = <span class="hljs-keyword">BigInt(modulus);
+    </span>
+      <span class="hljs-meta">if</span> (modulus === <span class="hljs-keyword">BigInt(1)) </span>return <span class="hljs-number">0</span><span class="hljs-comment">;</span>
+    
+      var result = <span class="hljs-keyword">BigInt(1);
+    </span>  a = a % modulus<span class="hljs-comment">;</span>
+      <span class="hljs-meta">while</span> (<span class="hljs-keyword">b </span>&gt; <span class="hljs-number">0</span>) {
+        <span class="hljs-meta">if</span> (<span class="hljs-keyword">b </span>% <span class="hljs-keyword">BigInt(2) </span>=== <span class="hljs-keyword">BigInt(1))
+    </span>      //odd number
+          result = (result * a) % modulus<span class="hljs-comment">;</span>
+        <span class="hljs-keyword">b </span>= <span class="hljs-keyword">b </span>/ <span class="hljs-keyword">BigInt(2); </span>//divide <span class="hljs-keyword">by </span><span class="hljs-number">2</span>
+        a = (a * a) % modulus<span class="hljs-comment">;</span>
+      }
+      return result<span class="hljs-comment">;</span>
+    }
+    
+    // Simple custom hash <span class="hljs-meta">function</span> for <span class="hljs-keyword">both </span>system <span class="hljs-keyword">and </span>voter
+    <span class="hljs-symbol">function</span> customHash(pk, a, <span class="hljs-keyword">b, </span>a0, <span class="hljs-keyword">b0, </span><span class="hljs-built_in">a1</span>, <span class="hljs-keyword">b1, </span>g) {
+      return (pk + a + <span class="hljs-keyword">b </span>+ a0 + <span class="hljs-keyword">b0 </span>+ <span class="hljs-built_in">a1</span> + <span class="hljs-keyword">b1) </span>% g<span class="hljs-comment">;</span>
+    }
+    
+    // Encrypt <span class="hljs-meta">function</span>
+    <span class="hljs-symbol">function</span> encrypt_vote(m) {
+      var choice = m<span class="hljs-comment">;</span>
+    
+      var g = <span class="hljs-keyword">BigInt("{{room.generator}}");
+    </span>  var p = <span class="hljs-keyword">BigInt("{{room.prime}}");
+    </span>  var pk = <span class="hljs-keyword">BigInt("{{room.public_key}}");
+    </span>  var q = p - <span class="hljs-keyword">BigInt(1); </span>// Euler totient <span class="hljs-meta">function</span> of p since p is prime
+    
+      // generate encription
+      var r = get_user_input()<span class="hljs-comment">; // get random number from user</span>
+      var a = powMod(g, r, p)<span class="hljs-comment">;</span>
+      var <span class="hljs-keyword">b </span>= powMod(pk, r, p)<span class="hljs-comment">;</span>
+      var <span class="hljs-built_in">r0</span> = <span class="hljs-keyword">BigInt(getRandom());
+    </span>  var <span class="hljs-built_in">r1</span> = <span class="hljs-keyword">BigInt(getRandom());
+    </span>  var a0, <span class="hljs-built_in">a1</span>, <span class="hljs-keyword">b0, </span><span class="hljs-keyword">b1, </span><span class="hljs-built_in">c0</span>, <span class="hljs-built_in">c1</span><span class="hljs-comment">;</span>
+    
+      <span class="hljs-meta">if</span> (choice === <span class="hljs-number">0</span>) {
+        a0 = powMod(g, <span class="hljs-built_in">r0</span>, p)<span class="hljs-comment">;</span>
+        <span class="hljs-keyword">b0 </span>= powMod(pk, <span class="hljs-built_in">r0</span>, p)<span class="hljs-comment">;</span>
+    
+        <span class="hljs-built_in">c1</span> = <span class="hljs-keyword">BigInt(getRandom());
+    </span>
+        <span class="hljs-built_in">a1</span> = (powMod(g, <span class="hljs-built_in">r1</span>, p) * powMod(a, <span class="hljs-built_in">c1</span> * (p - <span class="hljs-keyword">BigInt(2)), </span>p)) % p<span class="hljs-comment">;</span>
+        <span class="hljs-keyword">b1 </span>=
+          (powMod(pk, <span class="hljs-built_in">r1</span>, p) *
+            powMod(
+              (<span class="hljs-keyword">b </span>* powMod(g, p - <span class="hljs-keyword">BigInt(2), </span>p)) % p,
+              <span class="hljs-built_in">c1</span> * (p - <span class="hljs-keyword">BigInt(2)),
+    </span>          p
+            )) %
+          p<span class="hljs-comment">;</span>
+    
+        c = customHash(pk, a, <span class="hljs-keyword">b, </span>a0, <span class="hljs-keyword">b0, </span><span class="hljs-built_in">a1</span>, <span class="hljs-keyword">b1, </span>g)<span class="hljs-comment">;</span>
+        <span class="hljs-built_in">c0</span> = (q + ((<span class="hljs-built_in">c1</span> - c) % q)) % q<span class="hljs-comment">;</span>
+        <span class="hljs-built_in">r0</span> = (<span class="hljs-built_in">r0</span> + ((<span class="hljs-built_in">c0</span> * r) % q)) % q<span class="hljs-comment">;</span>
+      } <span class="hljs-meta">else</span> <span class="hljs-meta">if</span> (choice === <span class="hljs-number">1</span>) {
+        <span class="hljs-keyword">b </span>= (<span class="hljs-keyword">b </span>* <span class="hljs-keyword">BigInt("{{room.generator}}")) </span>% <span class="hljs-keyword">BigInt("{{room.prime}}");
+    </span>
+        <span class="hljs-built_in">c0</span> = <span class="hljs-keyword">BigInt(getRandom());
+    </span>
+        a0 = (powMod(g, <span class="hljs-built_in">r0</span>, p) * powMod(a, <span class="hljs-built_in">c0</span> * (p - <span class="hljs-keyword">BigInt(2)), </span>p)) % p<span class="hljs-comment">;</span>
+        <span class="hljs-keyword">b0 </span>= (powMod(pk, <span class="hljs-built_in">r0</span>, p) * powMod(<span class="hljs-keyword">b, </span><span class="hljs-built_in">c0</span> * (p - <span class="hljs-keyword">BigInt(2)), </span>p)) % p<span class="hljs-comment">;</span>
+    
+        <span class="hljs-built_in">a1</span> = powMod(g, <span class="hljs-built_in">r1</span>, p)<span class="hljs-comment">;</span>
+        <span class="hljs-keyword">b1 </span>= powMod(pk, <span class="hljs-built_in">r1</span>, p)<span class="hljs-comment">;</span>
+    
+        c = customHash(pk, a, <span class="hljs-keyword">b, </span>a0, <span class="hljs-keyword">b0, </span><span class="hljs-built_in">a1</span>, <span class="hljs-keyword">b1, </span>g)<span class="hljs-comment">;</span>
+        <span class="hljs-built_in">c1</span> = (q + ((<span class="hljs-built_in">c0</span> - c) % q)) % q<span class="hljs-comment">;</span>
+        <span class="hljs-built_in">r1</span> = (<span class="hljs-built_in">r1</span> + ((<span class="hljs-built_in">c1</span> * r) % q)) % q<span class="hljs-comment">;</span>
+      }
+    
+      return [a, <span class="hljs-keyword">b, </span>a0, <span class="hljs-built_in">a1</span>, <span class="hljs-keyword">b0, </span><span class="hljs-keyword">b1, </span><span class="hljs-built_in">c0</span>, <span class="hljs-built_in">c1</span>, <span class="hljs-built_in">r0</span>, <span class="hljs-built_in">r1</span>]<span class="hljs-comment">;</span>
+    }
+    </code></pre>
+    <p>After receiving voter&#39;s ciphertext, the system will then check the validity of the vote using its DCP proof. The Python code for it:</p>
+    <pre><code class="lang-python">
+    <span class="hljs-symbol">def</span> DCP_check(proof, pk, g, p):
+        a, <span class="hljs-keyword">b, </span>a0, <span class="hljs-built_in">a1</span>, <span class="hljs-keyword">b0, </span><span class="hljs-keyword">b1, </span><span class="hljs-built_in">c0</span>, <span class="hljs-built_in">c1</span>, <span class="hljs-built_in">r0</span>, <span class="hljs-built_in">r1</span> = proof
+    
+        <span class="hljs-built_in">s1</span> = pow(g, <span class="hljs-built_in">r0</span>, p) == a0 * pow(a, <span class="hljs-built_in">c0</span>, p) % p
+        <span class="hljs-built_in">s2</span> = pow(g, <span class="hljs-built_in">r1</span>, p) == <span class="hljs-built_in">a1</span> * pow(a, <span class="hljs-built_in">c1</span>, p) % p
+        <span class="hljs-built_in">s3</span> = pow(pk, <span class="hljs-built_in">r0</span>, p) == <span class="hljs-keyword">b0 </span>* pow(<span class="hljs-keyword">b, </span><span class="hljs-built_in">c0</span>, p) % p
+        <span class="hljs-built_in">s4</span> = pow(pk, <span class="hljs-built_in">r1</span>, p) == <span class="hljs-keyword">b1 </span>* \
+            pow(<span class="hljs-keyword">b </span>* pow(g, p - <span class="hljs-number">2</span>, p) % p, <span class="hljs-built_in">c1</span>, p) % p
+    
+        return (<span class="hljs-built_in">s1</span> <span class="hljs-keyword">and </span><span class="hljs-built_in">s2</span> <span class="hljs-keyword">and </span><span class="hljs-built_in">s3</span> <span class="hljs-keyword">and </span><span class="hljs-built_in">s4</span>)
+    </code></pre>
+    <p>The verified votes will then be posted on the buletin board so that each voter can view their own ciphertext: <code>(a_i, b_i, a0_i, a1_i, b0_i, b1_i, c0_i, c1_i, r0_i, r1_i)</code> and also can verify the correctness of anyone&#39;s ciphertext.</p>
+    <h3 id="tallying-phase">Tallying phase</h3>
+    <p>At the end of the voting period, we will now tally the vote. We will do this by getting the final (<code>a</code>, <code>b</code>) ciphertext by calculating</p>
+    <pre><code>
+    a = (<span class="hljs-name">a_1</span> * a_2 * ... * a_n) mod p
+    b = (b_1 * b_2 * ... * b_n) mod p
+    </code></pre><p>The code to sum all the ciphertext in Python:</p>
+    <pre><code class="lang-python">
+    def add_ciphers(ciphers, p):
+        <span class="hljs-keyword">a</span> = <span class="hljs-number">1</span>
+        b = <span class="hljs-number">1</span>
+        <span class="hljs-keyword">for</span> ai, bi <span class="hljs-keyword">in</span> ciphers:
+            <span class="hljs-keyword">a</span> = (<span class="hljs-keyword">a</span> * ai) % p
+            b = (b * bi) % p
+        <span class="hljs-literal">return</span> <span class="hljs-keyword">a</span>, b
+    </code></pre>
+    <p>Do notice that:</p>
+    <pre><code>
+    a = g<span class="hljs-symbol">^r_1</span> * g<span class="hljs-symbol">^r_2</span> * ... *  g<span class="hljs-symbol">^r_n</span> mod p
+      = g^(r_1 + r_2 + ... + r_n) mod p
+    b = (g<span class="hljs-symbol">^m_1</span> * g^(sk*r_1)) * ... * (g<span class="hljs-symbol">^m_n</span> * g^(sk*r_n)) mod p
+      = (g<span class="hljs-symbol">^m_1</span> * ... * g<span class="hljs-symbol">^m_n</span>) * (g^(sk*r_1) * ... * g^(sk*r_n)) mod p
+      = g^(m_1 + ... + m_n) * g^(sk*(r_1 + ... + r_n)) mod p
+      = g<span class="hljs-symbol">^m</span> * a<span class="hljs-symbol">^sk</span> mod p
+    </code></pre><p>Hence, we could later get the tallying result by computing <code>ai = a^(sk*(p-2)) mod p</code> and then getting the value of <code>g^m mod p</code> by computing <code>ai * b mod p</code>. By using Fermat little theorem:</p>
+    <pre><code>
+    ai * b <span class="hljs-keyword">mod</span> p = <span class="hljs-keyword">a</span>^(sk*(p<span class="hljs-number">-2</span>)) * g^m * <span class="hljs-keyword">a</span>^sk <span class="hljs-keyword">mod</span> p
+                 = g^m * <span class="hljs-keyword">a</span>^(sk(p<span class="hljs-number">-1</span>)) <span class="hljs-keyword">mod</span> p
+                 = g^m <span class="hljs-keyword">mod</span> p
+    </code></pre><p>As our secret key is created by using the sum of more than one authorities, we would need each authority to calculate their own <code>d</code> where <code>d_i = a^(sk_i) mod p</code> so we can calculate the final ai:</p>
+    <pre><code>
+    ai = <span class="hljs-comment">(d_1 * d_2 * ... * d_n)</span>^<span class="hljs-comment">(p-2)</span> mod p
+       = <span class="hljs-comment">(a^sk_1 * ... * a^sk_n)</span>^<span class="hljs-comment">(p-2)</span> mod p
+       = <span class="hljs-comment">(a^(sk_1 + ... + sk_n)</span>)^<span class="hljs-comment">(p-2)</span> mod p
+       = a^<span class="hljs-comment">(sk * (p-2)</span>) mod p
+    </code></pre><p>We also want to prevent the authority from doing malicious act by decrypting incorrectly or announcing a fake result. Here is where Chaum-Pedersen zero-knowledge Protocol comes to help. This protocol will request proofs from the authority without actually leaking his/her secret key to anyone. Here we also need a custom hash function. This is needed to prevent the authority from choosing a beneficial constant to fake their proof.</p>
+    <p>As a result, each authority will send ciphertext <code>(u_i, v_i, s_i ,d_i)</code> that would later be posted on the bulletin board with <code>d_i = a^sk_i mod p</code>.
+    As we don&#39;t want to leak the secret key <code>sk_i</code>, to help authority without leaking their secret key to the server, we use this function in JavaScript:</p>
+    <pre><code class="lang-javascript">
+    <span class="hljs-comment">// Work as Python's pow(a, b, c)</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">powMod</span><span class="hljs-params">(a, b, modulus)</span> </span>{
+      a = BigInt(a);
+      b = BigInt(b);
+      modulus = BigInt(modulus);
+    
+      <span class="hljs-keyword">if</span> (modulus === BigInt(<span class="hljs-number">1</span>)) <span class="hljs-keyword">return</span> <span class="hljs-number">0</span>;
+    
+      <span class="hljs-keyword">var</span> result = BigInt(<span class="hljs-number">1</span>);
+      a = a % modulus;
+      <span class="hljs-keyword">while</span> (b &gt; <span class="hljs-number">0</span>) {
+        <span class="hljs-keyword">if</span> (b % BigInt(<span class="hljs-number">2</span>) === BigInt(<span class="hljs-number">1</span>))
+          <span class="hljs-comment">//odd number</span>
+          result = (result * a) % modulus;
+        b = b / BigInt(<span class="hljs-number">2</span>); <span class="hljs-comment">//divide by 2</span>
+        a = (a * a) % modulus;
+      }
+      <span class="hljs-keyword">return</span> result;
+    }
+    
+    <span class="hljs-comment">// Custom hash that is used is super simple</span>
+    <span class="hljs-comment">// Might be improved by implementing a more complex hash function.</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">customHash</span><span class="hljs-params">(pk, a, b, u, v, g)</span> </span>{
+      <span class="hljs-keyword">return</span> (pk + a + b + u + v) % g;
+    }
+    
+    <span class="hljs-comment">// Main encryption function.</span>
+    <span class="hljs-function"><span class="hljs-keyword">function</span> <span class="hljs-title">encrypt_vote</span><span class="hljs-params">()</span> </span>{
+      <span class="hljs-keyword">var</span> g = BigInt(<span class="hljs-string">"{{room.generator}}"</span>);
+      <span class="hljs-keyword">var</span> p = BigInt(<span class="hljs-string">"{{room.prime}}"</span>);
+      <span class="hljs-keyword">var</span> pk = BigInt(<span class="hljs-string">"{{authority.public_key}}"</span>);
+      <span class="hljs-keyword">var</span> total_a = BigInt(<span class="hljs-string">"{{room.total_a}}"</span>);
+      <span class="hljs-keyword">var</span> total_b = BigInt(<span class="hljs-string">"{{room.total_b}}"</span>);
+      <span class="hljs-keyword">var</span> q = p - BigInt(<span class="hljs-number">1</span>);
+    
+      <span class="hljs-keyword">var</span> r = get_random_number_input(); <span class="hljs-comment">// get random number from input</span>
+      <span class="hljs-keyword">var</span> sk = get_user_input_sk(); <span class="hljs-comment">// get authority's secret key</span>
+      <span class="hljs-keyword">var</span> u = powMod(total_a, r, p);
+      <span class="hljs-keyword">var</span> v = powMod(g, r, p);
+      <span class="hljs-keyword">var</span> c = customHash(pk, total_a, total_b, u, v, g);
+      <span class="hljs-keyword">var</span> s = (r + ((c * sk) % q)) % q;
+      <span class="hljs-keyword">var</span> d = powMod(total_a, sk, p);
+    
+      <span class="hljs-keyword">return</span> u, v, s, d;
+    }
+    </code></pre>
+    <p>After getting the ciphertext, the system can then verify the cipher decryption of each authority. This Chaum-Pedersen&#39;s protocol will validate if the generated <code>d_i</code> is indeed <code>a^sk_i</code> and whether the secret key <code>sk_i</code> used is the same one used to generate the public key <code>pk_i</code>. After ensuring that it is correct, we could also generate the <code>ai_i</code> where <code>ai_i = d^(p-2) mod p</code>.</p>
+    <p>Here is the code for the validation:</p>
+    <pre><code class="lang-python">
+        <span class="hljs-function">
+    <span class="hljs-keyword">def</span> <span class="hljs-title">CP_check</span><span class="hljs-params">(pk, cipher, proof, g, p)</span></span>:
+        a, b = cipher
+        u, v, s, d = proof
+        c = sum([pk, a, b, u, v]) % g <span class="hljs-comment"># same custom hash function as in the JS code above.</span>
+        <span class="hljs-keyword">return</span> pow(a, s, p) == u * pow(d, c, p) % p <span class="hljs-keyword">and</span> pow(g, s, p) == v * pow(pk, c, p) % p
+    
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">get_ai</span><span class="hljs-params">(d, p)</span></span>:
+        <span class="hljs-keyword">return</span> pow(d, p-<span class="hljs-number">2</span>, p)
+    </code></pre>
+    <h3 id="result-release">Result release</h3>
+    <p>Lastly, after all the authorities done submitting their decryption and proof, we would now get the result of the voting event. Like mentioned before, we will get voting result by calculating <code>g^m</code> where m is the number total number of people voted for yes:</p>
+    <pre><code>
+    ai = ai_1 * ai_2 * ... *ai_n <span class="hljs-keyword">mod</span> p
+       = <span class="hljs-keyword">a</span>^(sk*(p<span class="hljs-number">-2</span>)) <span class="hljs-keyword">mod</span> p
+    ai * b <span class="hljs-keyword">mod</span> p = <span class="hljs-keyword">a</span>^(sk*(p<span class="hljs-number">-2</span>)) * g^m * <span class="hljs-keyword">a</span>^sk <span class="hljs-keyword">mod</span> p
+                 = g^m * <span class="hljs-keyword">a</span>^(sk(p<span class="hljs-number">-1</span>)) <span class="hljs-keyword">mod</span> p
+                 = g^m <span class="hljs-keyword">mod</span> p
+    </code></pre><p>The code for this in Python:</p>
+    <pre><code class="lang-python">
+    // Combine all <span class="hljs-built_in">result</span> <span class="hljs-built_in">from</span> authorities <span class="hljs-keyword">and</span>
+    def add_decrypted_ciphers(all_decrypted_a, b, p):
+        ai = <span class="hljs-number">1</span>
+        <span class="hljs-keyword">for</span> <span class="hljs-keyword">a</span> <span class="hljs-keyword">in</span> all_decrypted_a:
+            ai = (ai * <span class="hljs-keyword">a</span>) % p
+        <span class="hljs-literal">return</span> ai * b % p
+    </code></pre>
+    <p>We could then find number of voters <code>m</code> by checking one by one from <code>i = 0</code> to <code>i = number_of_voters</code> and find one that satisfy <code>g^i mod p = g^m mod p</code>.</p>
+    <p>The code for this in Python:</p>
+    <pre><code class="lang-python">
+    <span class="hljs-comment"># get the number of people voting for yes(1)</span>
+    <span class="hljs-function"><span class="hljs-keyword">def</span> <span class="hljs-title">decrypt_ciphers</span><span class="hljs-params">(gm, g, p)</span></span>:
+        m = <span class="hljs-number">0</span>
+        <span class="hljs-keyword">while</span> pow(g, m, p) != <span class="hljs-symbol">gm:</span>
+            m += <span class="hljs-number">1</span>
+        <span class="hljs-keyword">return</span> m
+    </code></pre>
+
+    <p>Everyone can then validate the authority&#39;s proof and the voting result from the bulletin board to make sure the voting result is not rigged using these knowledge.</p>    
+
+    <h3 id="that-s-it-thank-you-for-reading-until-the-end-">That&#39;s it! Thank you for reading until the end :-)</h3>
+    2022 © fer
+    
+    
+
+</div>
+{% endblock %}

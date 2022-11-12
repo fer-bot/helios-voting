@@ -1,0 +1,54 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="row justify-content-center g-0 pt-5">
+
+    <div class="card text-center" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Voters </p>
+        </div>
+
+        <div class="card-body">
+            <table class="table table-sm table-bordered table-hover text-start">
+                <thead>
+                  <tr>
+                    <th scope="col">Username</th>
+                    {% if not is_close %}
+                        <th scope="col">Action</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody>
+                    {% for voter in voters %}
+                    <tr>
+                        <th scope="row">{{voter.user_id}}</th>
+                        {% if not is_close %}
+                            <td><a class="btn btn-sm btn-danger m-0 p-0 px-2" href="{% url 'room_delete_voter' room_id=room_id user_id=voter.user_id %}">Delete</a></td>
+                        {% endif %}
+                      </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            {% if not is_close %}
+            <form action="{% url 'room_update_voter' room_id=room_id %}" method="post" class="container-fluid">
+                {% csrf_token %}
+                <div class="row">
+                    <div class="col-auto">
+                        <input type="text" class="form-control" id="username" name="username" required>
+                    </div>
+                    <div class="col-auto">
+                        <button type="submit" class="btn btn-primary">Add</button>
+                    </div>
+                </div>
+            </form>
+            {% endif %}
+
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+</div>
+{% endblock %}

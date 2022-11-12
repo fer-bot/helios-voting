@@ -1,0 +1,70 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="row justify-content-center g-0 pt-5">
+
+    <div class="card text-center" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Authorities </p>
+        </div>
+
+        <div class="card-body">
+            <table class="table table-sm table-bordered table-hover text-start">
+                <thead>
+                  <tr>
+                    <th scope="col">Username</th>
+                    <th scope="col">Public Key</th>
+                    {% if not is_locked %}
+                    <th scope="col">Action</th>
+                    {% endif %}
+                  </tr>
+                </thead>
+                <tbody>
+                    {% for auth in authorities%}
+                    <tr>
+                        <th scope="row">{{auth.user_id}}</th>
+                        {% if auth.public_key %}
+                            <td> <button type="button" class="btn btn-sm btn-outline-success m-0 p-0 px-2 rounded-pill" disabled>Submited</button> </td>
+                        {% else %}
+                            <td> <button type="button" class="btn btn-sm btn-outline-danger m-0 p-0 px-2 rounded-pill" disabled>Not Submited</button> </td>
+                        {% endif %}
+                        {% if not is_locked %}
+                            <td><a class="btn btn-sm btn-danger m-0 p-0 px-2" href="{% url 'room_delete_authority' room_id=room_id user_id=auth.user_id %}">Delete</a></td>
+                        {% endif %}
+                      </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            {%  if is_locked %}
+                <button type="submit" class="btn btn-danger" disabled>Locked</button>
+            {% else %}
+                <form action="{% url 'room_update_authority' room_id=room_id %}" method="post" class="container-fluid">
+                    {% csrf_token %}
+                    <div class="row">
+                        <div class="col-auto">
+                            <input type="text" class="form-control" id="username" name="username" required>
+                        </div>
+                        <div class="col-auto">
+                            <button type="submit" class="btn btn-primary">Add</button>
+                        </div>
+                    </div>
+                </form>
+
+                <form action="{% url 'room_update_lock' room_id=room_id %}" method="post" class=" mt-3 d-flex align-items-start flex-column">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">Lock Authorities</button>
+                    <p style="color: red; font-size: 12px;" class="mt-1 m-0"> You need to lock authorities before opening the room.</p>
+                    <p style="color: red; font-size: 12px;" class="mb-0"> warning! Once locked, cannot be unlocked. </p>
+                </form>
+            {% endif %}
+
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+</div>
+{% endblock %}

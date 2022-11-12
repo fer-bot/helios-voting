@@ -1,0 +1,164 @@
+{% extends "base_site.html" %}
+
+{% block content %}
+{% include "header_basic.html" %}
+<div class="row justify-content-center g-0 pt-5">
+
+    <div class="card text-center mx-3" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Submit your Proof</p>
+        </div>
+
+        <div class="card-body">
+
+            <div class="mx-5 row mb-3 justify-content-between">
+                <label for="user_r" class="col-sm-6 col-form-label" style="text-align:left;">Random Number</label>
+                <button class="btn btn-outline-success col-sm-3 btn-sm m-1" onclick="changeSecret()">Regenerate</button>
+                <textarea type="text" class="form-control" id="user_r" name="user_r" required>loading...</textarea>
+            </div>
+
+            <div class="mx-5 row mb-3 justify-content-between">
+                <label for="user_sk" class="col-sm-6 col-form-label" style="text-align:left;">Secret Key</label>
+                <textarea type="text" class="form-control" id="user_sk" name="user_sk" required></textarea>
+            </div>
+                
+
+            <button  class="btn btn-primary my-3 mb-0" onclick="encrypt_vote()"> Encrypt Vote </button>
+            <p style="color: red; font-size: 12px;" class="mt-1 m-0" id="prime_warning"> Warning! Please encrypt vote before submitting !</p>
+
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+    <div class="card text-center mx-3" style="width: 500px;">
+        <div class="card-header">
+        <p class="text-center m-0 p-1 display-6"> Submit your Proof</p>
+        </div>
+
+        <div class="card-body">
+
+            <div class="mx-5 row mb-3 justify-content-between">
+                <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Prime Number</label>
+                <textarea class="form-control" id="room_id" name="room_id" rows="1" readonly>{{room.prime}}</textarea>
+            </div>
+
+            <div class="mx-5 row justify-content-between">
+                <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Generator Number</label>
+                <textarea class="form-control" id="room_id" name="room_id" rows="1" readonly>{{room.generator}}</textarea>
+            </div>
+
+            <div class="mx-5 row justify-content-between">
+                <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Your Public Key</label>
+                <textarea class="form-control" id="room_id" name="room_id" rows="1" readonly>{{ details.public_key}}</textarea>
+            </div>
+            <div class="mx-5 row justify-content-between">
+                <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Total encrypted a</label>
+                <textarea class="form-control" id="room_id" name="room_id" rows="1" readonly>{{ room.total_a}}</textarea>
+            </div>
+            <div class="mx-5 row justify-content-between">
+                <label for="room_id" class="col-sm-6 col-form-label" style="text-align:left;">Total encrypted b</label>
+                <textarea class="form-control" id="room_id" name="room_id" rows="1" readonly>{{ room.total_b}}</textarea>
+            </div>
+            <br/>
+            <form action="{% url 'authority_submit' room_id=room.room_id %}" method="post">
+                {% csrf_token %}
+                <div class="mx-5 row justify-content-between">
+                    <label for="proof_u" class="col-sm-6 col-form-label" style="text-align:left;">Proof u</label>
+                    <textarea type="text" class="form-control" id="proof_u" name="proof_u" rows="1" required readonly></textarea>
+                </div>
+                <div class="mx-5 row justify-content-between">
+                    <label for="proof_v" class="col-sm-6 col-form-label" style="text-align:left;">Proof v</label>
+                    <textarea type="text" class="form-control" id="proof_v" name="proof_v" rows="1" required readonly></textarea>
+                </div>
+                <div class="mx-5 row justify-content-between">
+                    <label for="proof_s" class="col-sm-6 col-form-label" style="text-align:left;">Proof s</label>
+                    <textarea type="text" class="form-control" id="proof_s" name="proof_s" rows="1" required readonly></textarea>
+                </div>
+                <div class="mx-5 row justify-content-between">
+                    <label for="proof_d" class="col-sm-6 col-form-label" style="text-align:left;">Proof d</label>
+                    <textarea type="text" class="form-control" id="proof_d" name="proof_d" rows="1" required readonly></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary my-3 mb-0">Create</button>
+                <p style="color: red; font-size: 12px;" class="mt-1 m-0" id="prime_warning"> Warning! Once submited, you will not be able to edit!</p>
+
+                <br/>
+            </form>
+        </div>
+        <div class="card-footer text-muted text-start">
+            2022 © fer
+        </div>
+    </div>
+
+</div>
+<script>
+    var bits = 1024;
+
+    function getRandom(){
+        var result = ""
+        for (var i = 0; i < 80; i++){
+            result += String(Math.floor(Math.random() * 10000))
+        }
+        return result
+    }
+
+    function changeSecret(g, p){
+        document.getElementById('user_r').value = 'loading...';
+        
+        var num = getRandom()
+        document.getElementById('user_r').value = num.toString(10);
+    }
+    changeSecret()
+
+    function powMod(a, b, modulus){
+        
+        a = BigInt(a)
+        b = BigInt(b)
+        modulus = BigInt(modulus)
+
+        if (modulus === BigInt(1)) return 0;
+
+        var result = BigInt(1);
+        a = a % modulus;
+        while (b > 0) {
+            if (b % BigInt(2) === BigInt(1))  //odd number
+                result = (result * a) % modulus;
+            b = b / BigInt(2); //divide by 2
+            a = (a * a) % modulus;
+        }
+        return result;
+    }
+
+    function customHash(pk, a, b, u, v, g){
+        return (pk + a + b + u + v) % g
+    }
+
+    function encrypt_vote(){
+        
+        
+        var g = BigInt("{{room.generator}}")
+        var p = BigInt("{{room.prime}}")
+        var pk = BigInt("{{details.public_key}}")
+        var total_a = BigInt("{{room.total_a}}")
+        var total_b = BigInt("{{room.total_b}}")
+        var q = p - BigInt(1)
+
+        var r = BigInt(document.getElementById("user_r").value)
+        var sk = BigInt(document.getElementById("user_sk").value)
+        var u = powMod(total_a, r, p)
+        var v = powMod(g, r, p)
+        var c = customHash(pk, total_a, total_b, u, v, g)
+        var s = (r + (c * sk) % q) % q
+        var d = powMod(total_a, sk, p)
+
+        document.getElementById("proof_u").value = u
+        document.getElementById("proof_v").value = v
+        document.getElementById("proof_s").value = s
+        document.getElementById("proof_d").value = d
+        
+    }
+    
+</script>
+{% endblock %}
