@@ -149,13 +149,22 @@
         var sk = BigInt(document.getElementById("user_sk").value)
         var u = powMod(total_a, r, p)
         var v = powMod(g, r, p)
-        var c = customHash(pk, total_a, total_b, u, v, g)
-        var s = (r + (c * sk) % q) % q
+        var hash_input = ((pk + total_a + total_b + u + v) % p).toString()
+        var url_mask = "{% url 'hash_input' hash_input='TMP' %}".replace('TMP/', hash_input);
+
+
+        fetch(url_mask).then(function(response){
+            return response.json()
+        }).then(function(data){
+            var c = BigInt(data.hash_response)
+            var s = (r + (c * sk) % q) % q
+            document.getElementById("proof_s").value = s
+        })
+
         var d = powMod(total_a, sk, p)
 
         document.getElementById("proof_u").value = u
         document.getElementById("proof_v").value = v
-        document.getElementById("proof_s").value = s
         document.getElementById("proof_d").value = d
         
     }

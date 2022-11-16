@@ -1,10 +1,11 @@
 from django.shortcuts import redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.contrib import messages
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.models import User
 from django.template import loader
+import utils.helios as Helios
 
 
 @login_required
@@ -65,3 +66,9 @@ def user_logout(request):
     if request.method == 'GET':
         logout(request)
         return redirect('/user/')
+
+
+def hash_input(request, hash_input):
+    if request.method == 'GET':
+        print("aaaa" + str(Helios.hash_sha(str(hash_input))))
+        return JsonResponse({'hash_response': str(Helios.hash_sha(str(hash_input)))})

@@ -5,6 +5,7 @@ import secrets
 from Crypto.Util import number
 from .safeprimes import safeprimes
 import random
+from hashlib import sha256
 
 
 def generate_large_prime():
@@ -67,10 +68,16 @@ def decrypt_ciphers(gm, g, p):
     return m
 
 
+def hash_sha(hash_input):
+    print(hash_input)
+    print(int(sha256(str(hash_input).encode('utf-8')).hexdigest(), 16))
+    return int(sha256(str(hash_input).encode('utf-8')).hexdigest(), 16)
+
+
 def CP_check(pk, cipher, proof, g, p):
     a, b = cipher
     u, v, s, d = proof
-    c = sum([pk, a, b, u, v]) % g
+    c = hash_sha(sum([pk, a, b, u, v]) % p)
     return pow(a, s, p) == u * pow(d, c, p) % p and pow(g, s, p) == v * pow(pk, c, p) % p
 
 
