@@ -157,10 +157,6 @@
         return result;
     }
 
-    function customHash(pk, a, b, a0, b0, a1, b1, g){
-        return (pk + a + b + a0 + b0 + a1 + b1) % g
-    }
-
     function encrypt_vote(){
         if (!(document.getElementById("customRadio1").checked ^ document.getElementById("customRadio2").checked)) return
         
