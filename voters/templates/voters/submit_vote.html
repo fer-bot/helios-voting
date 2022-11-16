@@ -190,9 +190,28 @@
             a1 = powMod(g, r1, p) * powMod(a, c1 * (p - BigInt(2)), p) % p;
             b1 = powMod(pk, r1, p) * powMod(b * powMod(g, p - BigInt(2), p) % p, c1 * (p - BigInt(2)), p) % p;
 
-            c = customHash(pk, a, b, a0, b0, a1, b1, g);
-            c0 = (q + (c1 - c) % q) % q;
-            r0 = (r0 + (c0 * r) % q) % q;
+            var hash_input = ((pk + a + b + a0 + b0 + a1 + b1) % q).toString()
+            var url_mask = "{% url 'hash_input' hash_input='TMP' %}".replace('TMP/', hash_input);
+
+
+            fetch(url_mask).then(function(response){
+                return response.json()
+            }).then(function(data){
+                var c = BigInt(data.hash_response)
+                c0 = (q + (c - c1)) % q;
+                r0 = (r0 + (c0 * r) % q) % q;
+
+                document.getElementById("vote_a").value = a
+                document.getElementById("vote_b").value = b
+                document.getElementById("proof_a0").value = a0
+                document.getElementById("proof_a1").value = a1
+                document.getElementById("proof_b0").value = b0
+                document.getElementById("proof_b1").value = b1
+                document.getElementById("proof_c0").value = c0
+                document.getElementById("proof_c1").value = c1
+                document.getElementById("proof_r0").value = r0
+                document.getElementById("proof_r1").value = r1
+            })
         }
 
         else if (choice === 1) {
@@ -206,22 +225,29 @@
             a1 = powMod(g, r1, p);
             b1 = powMod(pk, r1, p);
 
-            c = customHash(pk, a, b, a0, b0, a1, b1, g);
-            c1 = (q + (c0 - c) % q) % q;
-            r1 = (r1 + (c1 * r) % q) % q;
-        }
+            var hash_input = ((pk + a + b + a0 + b0 + a1 + b1) % q).toString()
+            var url_mask = "{% url 'hash_input' hash_input='TMP' %}".replace('TMP/', hash_input);
 
-        document.getElementById("vote_a").value = a
-        document.getElementById("vote_b").value = b
-        document.getElementById("proof_a0").value = a0
-        document.getElementById("proof_a1").value = a1
-        document.getElementById("proof_b0").value = b0
-        document.getElementById("proof_b1").value = b1
-        document.getElementById("proof_c0").value = c0
-        document.getElementById("proof_c1").value = c1
-        document.getElementById("proof_r0").value = r0
-        document.getElementById("proof_r1").value = r1
-        
+
+            fetch(url_mask).then(function(response){
+                return response.json()
+            }).then(function(data){
+                var c = BigInt(data.hash_response)
+                c1 = (q + (c - c0)) % q;
+                r1 = (r1 + (c1 * r) % q) % q;
+
+                document.getElementById("vote_a").value = a
+                document.getElementById("vote_b").value = b
+                document.getElementById("proof_a0").value = a0
+                document.getElementById("proof_a1").value = a1
+                document.getElementById("proof_b0").value = b0
+                document.getElementById("proof_b1").value = b1
+                document.getElementById("proof_c0").value = c0
+                document.getElementById("proof_c1").value = c1
+                document.getElementById("proof_r0").value = r0
+                document.getElementById("proof_r1").value = r1
+            })
+        }
     }
     
 </script>

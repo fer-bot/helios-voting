@@ -93,5 +93,7 @@ def DCP_check(proof, pk, g, p):
     s3 = pow(pk, r0, p) == b0 * pow(b, c0, p) % p
     s4 = pow(pk, r1, p) == b1 * \
         pow(b * pow(g, p - 2, p) % p, c1, p) % p
+    c = hash_sha(sum([pk, a, b, a0, b0, a1, b1]) % (p - 1))
+    s5 = (c0 + c1) % (p - 1) == c
 
-    return (s1 and s2 and s3 and s4)
+    return (s1 and s2 and s3 and s4 and s5)
