@@ -127,7 +127,11 @@ def get_room_pk(authority_pks, p):
 
 During the voting period, each user will use exponential ElGamal to encrypt their voting result as exponential ElGamal is great for tallying up the votes. Each user will pick a random number `r_i` and generate ciphertext `(a_i, b_i)` with `a_i = g^r_i mod p` and `b_i = g^m * pk^r_i mod p` where `m = 0` for yes and `m = 1` for no.
 
-We also need a way to verify that a voter does not send any invalid vote (for example, `b_i = g^100 * pk^r_i mod p`) that could give him an unfair advantage. Here is where we use DCP (Disjunctive Chaum-Pedersen's) zero-knowledge proof protocol. DCP requires the voter to generate proofs that his/her vote is valid without giving any information of whether they choose yes or no.
+We also need a way to verify that a voter does not send any invalid vote (for example, `b_i = g^100 * pk^r_i mod p`) that could give him an unfair advantage. Here is where we use DCP (Disjunctive Chaum-Pedersen's) zero-knowledge proof protocol. DCP requires the voter to generate proofs that his/her vote is valid without giving any information about whether they choose yes or no. The main idea is that the voter will need to submit 2 proofs and the voter can only cheat on one of the two proofs. This is needed such that no one can predict the vote from the proof.
+
+DCP relies on a hash function. Because the hash function is unpredictable and depends on `(pk, a, b, a0, bo, a1, b1) `, trying to adjust one of these values will result in changing the challenge `c = H(pk, a, b, a0, bo, a1, b1)`. This makes generating fake proof very hard. For this application, our hash function will be:
+
+`c = sha256(sum(pk, a, b, a0, bo, a1, b1))`
 
 As a result, each voter will send ciphertext that would later be posted on the bulletin board:
 
@@ -135,7 +139,7 @@ As a result, each voter will send ciphertext that would later be posted on the b
 (a_i, b_i, a0_i, a1_i, b0_i, b1_i, c0_i, c1_i, r0_i, r1_i)
 ```
 
-As we don't want to leak the random number `r_i` to the server, to help voters generate the ciphertexts, we give this functions in JavaScript:
+As we don't want to leak any secrets to the server, to help voters generate the ciphertexts, we give these functions in JavaScript:
 
 ```javascript
 // Like pow function in Python
@@ -158,70 +162,79 @@ function powMod(a, b, modulus) {
   return result;
 }
 
-// Simple custom hash function for both system and voter
-function customHash(pk, a, b, a0, b0, a1, b1, g) {
-  return (pk + a + b + a0 + b0 + a1 + b1) % g;
-}
-
 // Encrypt function
-function encrypt_vote(m) {
-  var choice = m;
+function encrypt_vote(choice){
+    var g = BigInt("{{room.generator}}")
+    var p = BigInt("{{room.prime}}")
+    var pk = BigInt("{{room.public_key}}")
+    var q = p - BigInt(1)
 
-  var g = BigInt("{{room.generator}}");
-  var p = BigInt("{{room.prime}}");
-  var pk = BigInt("{{room.public_key}}");
-  var q = p - BigInt(1); // Euler totient function of p since p is prime
+    // generate encryption a
+    var r = getRandomInput() // from user
+    var a = powMod(g, r, p)
+    var b = powMod(pk, r, p)
+    var r0 = BigInt(getRandom())
+    var r1 = BigInt(getRandom())
+    var a0, a1, b0, b1, c0, c1;
 
-  // generate encription
-  var r = get_user_input(); // get random number from user
-  var a = powMod(g, r, p);
-  var b = powMod(pk, r, p);
-  var r0 = BigInt(getRandom());
-  var r1 = BigInt(getRandom());
-  var a0, a1, b0, b1, c0, c1;
+    if (choice === 0){
+        a0 = powMod(g, r0, p);
+        b0 = powMod(pk, r0, p);
 
-  if (choice === 0) {
-    a0 = powMod(g, r0, p);
-    b0 = powMod(pk, r0, p);
+        c1 = BigInt(getRandom())
 
-    c1 = BigInt(getRandom());
+        a1 = powMod(g, r1, p) * powMod(a, c1 * (p - BigInt(2)), p) % p;
+        b1 = powMod(pk, r1, p) * powMod(b * powMod(g, p - BigInt(2), p) % p, c1 * (p - BigInt(2)), p) % p;
 
-    a1 = (powMod(g, r1, p) * powMod(a, c1 * (p - BigInt(2)), p)) % p;
-    b1 =
-      (powMod(pk, r1, p) *
-        powMod(
-          (b * powMod(g, p - BigInt(2), p)) % p,
-          c1 * (p - BigInt(2)),
-          p
-        )) %
-      p;
+        var hash_input = ((pk + a + b + a0 + b0 + a1 + b1) % q).toString()
+        // URL to hash to SHA256 input";
+        var url_mask = "/user/hash/" + hash_input" ;
 
-    c = customHash(pk, a, b, a0, b0, a1, b1, g);
-    c0 = (q + ((c1 - c) % q)) % q;
-    r0 = (r0 + ((c0 * r) % q)) % q;
-  } else if (choice === 1) {
-    b = (b * BigInt("{{room.generator}}")) % BigInt("{{room.prime}}");
+        fetch(url_mask).then(function(response){
+            return response.json()
+        }).then(function(data){
+            var c = BigInt(data.hash_response) // hash result
+            c0 = (q + (c - c1)) % q;
+            r0 = (r0 + (c0 * r) % q) % q;
 
-    c0 = BigInt(getRandom());
+            return [a, b, a0, a1, b0, b1, c0, c1, r0, r1];
+        })
+    }
 
-    a0 = (powMod(g, r0, p) * powMod(a, c0 * (p - BigInt(2)), p)) % p;
-    b0 = (powMod(pk, r0, p) * powMod(b, c0 * (p - BigInt(2)), p)) % p;
+    else if (choice === 1) {
+        b = (b * BigInt("{{room.generator}}")) % BigInt("{{room.prime}}")
 
-    a1 = powMod(g, r1, p);
-    b1 = powMod(pk, r1, p);
+        c0 = BigInt(getRandom());
 
-    c = customHash(pk, a, b, a0, b0, a1, b1, g);
-    c1 = (q + ((c0 - c) % q)) % q;
-    r1 = (r1 + ((c1 * r) % q)) % q;
-  }
+        a0 = powMod(g, r0, p) * powMod(a, c0 * (p - BigInt(2)), p) % p;
+        b0 = powMod(pk, r0, p) * powMod(b, c0 * (p - BigInt(2)), p) % p;
 
-  return [a, b, a0, a1, b0, b1, c0, c1, r0, r1];
+        a1 = powMod(g, r1, p);
+        b1 = powMod(pk, r1, p);
+
+        var hash_input = ((pk + a + b + a0 + b0 + a1 + b1) % q).toString()
+        // URL to hash to SHA256 input";
+        var url_mask = "/user/hash/" + hash_input" ;
+
+        fetch(url_mask).then(function(response){
+            return response.json()
+        }).then(function(data){
+            var c = BigInt(data.hash_response) // hash result
+            c1 = (q + (c - c0)) % q;
+            r1 = (r1 + (c1 * r) % q) % q;
+
+            return [a, b, a0, a1, b0, b1, c0, c1, r0, r1];
+        })
+    }
 }
 ```
 
 After receiving voter's ciphertext, the system will then check the validity of the vote using its DCP proof. The Python code for it:
 
 ```python
+def hash_sha(hash_input):
+    return int(sha256(str(hash_input).encode('utf-8')).hexdigest(), 16)
+
 def DCP_check(proof, pk, g, p):
     a, b, a0, a1, b0, b1, c0, c1, r0, r1 = proof
 
@@ -230,8 +243,10 @@ def DCP_check(proof, pk, g, p):
     s3 = pow(pk, r0, p) == b0 * pow(b, c0, p) % p
     s4 = pow(pk, r1, p) == b1 * \
         pow(b * pow(g, p - 2, p) % p, c1, p) % p
+    c = hash_sha(sum([pk, a, b, a0, b0, a1, b1]) % (p - 1))
+    s5 = (c0 + c1) % (p - 1) == c
 
-    return (s1 and s2 and s3 and s4)
+    return (s1 and s2 and s3 and s4 and s5)
 ```
 
 The verified votes will then be posted on the buletin board so that each voter can view their own ciphertext: `(a_i, b_i, a0_i, a1_i, b0_i, b1_i, c0_i, c1_i, r0_i, r1_i)` and also can verify the correctness of anyone's ciphertext.
@@ -285,7 +300,9 @@ ai = (d_1 * d_2 * ... * d_n)^(p-2) mod p
    = a^(sk * (p-2)) mod p
 ```
 
-We also want to prevent the authority from doing malicious act by decrypting incorrectly or announcing a fake result. Here is where Chaum-Pedersen zero-knowledge Protocol comes to help. This protocol will request proofs from the authority without actually leaking his/her secret key to anyone. Here we also need a custom hash function. This is needed to prevent the authority from choosing a beneficial constant to fake their proof.
+We also want to prevent the authority from doing malicious acts by decrypting incorrectly or announcing a fake result. Here is where Chaum-Pedersen zero-knowledge Protocol comes to help. This protocol will request proof from the authority without actually leaking his/her secret key to anyone.
+
+Here we also need an unpredictable hash function. Like DCP, the hash function `c = H(pk, a, b, u, v)` will also change along when trying to fake the proof.
 
 As a result, each authority will send ciphertext `(u_i, v_i, s_i ,d_i)` that would later be posted on the bulletin board with `d_i = a^sk_i mod p`. As we don't want to leak the secret key `sk_i`, to help authority without leaking their secret key to the server, we use this function in JavaScript:
 
@@ -310,30 +327,34 @@ function powMod(a, b, modulus) {
   return result;
 }
 
-// Custom hash that is used is super simple
-// Might be improved by implementing a more complex hash function.
-function customHash(pk, a, b, u, v, g) {
-  return (pk + a + b + u + v) % g;
-}
-
 // Main encryption function.
 function encrypt_vote() {
   var g = BigInt("{{room.generator}}");
   var p = BigInt("{{room.prime}}");
-  var pk = BigInt("{{authority.public_key}}");
+  var pk = BigInt("{{details.public_key}}");
   var total_a = BigInt("{{room.total_a}}");
   var total_b = BigInt("{{room.total_b}}");
   var q = p - BigInt(1);
 
-  var r = get_random_number_input(); // get random number from input
-  var sk = get_user_input_sk(); // get authority's secret key
+  var r = BigInt(document.getElementById("user_r").value);
+  var sk = BigInt(document.getElementById("user_sk").value);
   var u = powMod(total_a, r, p);
   var v = powMod(g, r, p);
-  var c = customHash(pk, total_a, total_b, u, v, g);
-  var s = (r + ((c * sk) % q)) % q;
   var d = powMod(total_a, sk, p);
 
-  return u, v, s, d;
+  var hash_input = ((pk + total_a + total_b + u + v) % p).toString();
+  var url_mask = "/user/hash/" + hash_input; // URL to hash to SHA265
+
+  fetch(url_mask)
+    .then(function (response) {
+      return response.json();
+    })
+    .then(function (data) {
+      var c = BigInt(data.hash_response);
+      var s = (r + ((c * sk) % q)) % q;
+    });
+
+  return [u, v, s, d];
 }
 ```
 
@@ -345,8 +366,9 @@ Here is the code for the validation:
 def CP_check(pk, cipher, proof, g, p):
     a, b = cipher
     u, v, s, d = proof
-    c = sum([pk, a, b, u, v]) % g # same custom hash function as in the JS code above.
+    c = hash_sha(sum([pk, a, b, u, v]) % p)
     return pow(a, s, p) == u * pow(d, c, p) % p and pow(g, s, p) == v * pow(pk, c, p) % p
+
 
 def get_ai(d, p):
     return pow(d, p-2, p)
@@ -354,7 +376,7 @@ def get_ai(d, p):
 
 ### Result release
 
-Lastly, after all the authorities done submitting their decryption and proof, we would now get the result of the voting event. Like mentioned before, we will get voting result by calculating `g^m` where m is the number total number of people voted for yes:
+Lastly, after all the authorities has done submitting their decryption and proof, we would now get the result of the voting event. As mentioned before, we will get the voting result by calculating `g^m` where m is the number total number of people who voted for yes:
 
 ```
 ai = ai_1 * ai_2 * ... *ai_n mod p
@@ -367,7 +389,7 @@ ai * b mod p = a^(sk*(p-2)) * g^m * a^sk mod p
 The code for this in Python:
 
 ```python
-// Combine all result from authorities and
+// Combine all result from authorities
 def add_decrypted_ciphers(all_decrypted_a, b, p):
     ai = 1
     for a in all_decrypted_a:
@@ -388,6 +410,6 @@ def decrypt_ciphers(gm, g, p):
     return m
 ```
 
-Everyone can then validate the authority's proof and the voting result from the bulletin board to make sure the voting result is not rigged using these knowledge.
+Everyone can then validate the authority's proof and the voting result from the bulletin board to make sure the voting result is not rigged using this knowledge.
 
 #### Thank you for reading until the end :-)

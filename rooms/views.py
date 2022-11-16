@@ -261,10 +261,7 @@ def room_release(request, room_id):
                 'total_vote': str(vote_result),
                 'number_of_voter': str(number_of_voter),
             }}
-            print(newvalues)
             DB.room_update_detail(filter, newvalues)
-
-            print(newvalues)
 
             messages.info(
                 request, f'Update Successful!')

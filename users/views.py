@@ -70,5 +70,4 @@ def user_logout(request):
 
 def hash_input(request, hash_input):
     if request.method == 'GET':
-        print("aaaa" + str(Helios.hash_sha(str(hash_input))))
         return JsonResponse({'hash_response': str(Helios.hash_sha(str(hash_input)))})

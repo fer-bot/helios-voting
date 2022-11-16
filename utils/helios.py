@@ -69,8 +69,6 @@ def decrypt_ciphers(gm, g, p):
 
 
 def hash_sha(hash_input):
-    print(hash_input)
-    print(int(sha256(str(hash_input).encode('utf-8')).hexdigest(), 16))
     return int(sha256(str(hash_input).encode('utf-8')).hexdigest(), 16)
 
 
